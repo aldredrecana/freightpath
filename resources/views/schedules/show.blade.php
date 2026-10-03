@@ -2,9 +2,12 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Delivery {{ $schedule->reference }}</h2>
         <div class="flex items-center gap-4 text-sm">
-            <a href="{{ auth()->user()->hasRole('driver') ? route('schedules.mine') : route('schedules.index') }}" class="text-gray-600 underline">Back</a>
+           href="{{ auth()->user()->hasRole('driver') ? route('schedules.mine') : (in_array($schedule->status, ['delivered', 'cancelled'], true) ? route('transactions.index', ['trip' => $schedule->id]) : route('schedules.index')) }}"
             @if (! auth()->user()->hasRole('driver'))
-                <a href="{{ route('schedules.edit', $schedule) }}" class="text-blue-600 underline">Edit</a>
+                @unless (in_array($schedule->status, ['delivered', 'cancelled'], true))
+                     <a href="{{ route('schedules.edit', $schedule) }}" class="text-blue-600 underline">Edit</a>
+                @endunless
+
                 <form method="POST" action="{{ route('schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule?')">
                     @csrf
                     @method('DELETE')

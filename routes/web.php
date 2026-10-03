@@ -7,6 +7,7 @@ use App\Http\Controllers\TruckController;
 use App\Http\Controllers\ScheduleController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TransactionController;
 
 Route::get('/', fn () => redirect()->route(Auth::check() ? 'dashboard' : 'login'));
 
@@ -56,3 +57,7 @@ Route::middleware(['auth', 'role:admin,dispatcher'])
     ->get('/drivers/{driver}', [DriverController::class, 'show'])
     ->whereNumber('driver')
     ->name('drivers.show');
+
+Route::middleware(['auth', 'role:admin,dispatcher'])
+    ->get('/transactions', [TransactionController::class, 'index'])
+    ->name('transactions.index');

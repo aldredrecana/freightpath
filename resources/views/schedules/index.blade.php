@@ -9,7 +9,7 @@
             <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h1 class="text-4xl font-bold tracking-tight text-[#12263F]">Trip schedules</h1>
-                    <p class="mt-2 text-gray-500">Plan the day ahead and keep your fleet moving.</p>
+                    <p class="mt-2 text-gray-500">Active trips only. Finished trips move to Trip history.</p>
                 </div>
                 <a href="{{ route('schedules.create') }}"
                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">
@@ -38,8 +38,8 @@
                         @endif
                         <select name="status" onchange="this.form.submit()"
                                 class="rounded-lg border border-gray-200 py-3 pl-4 pr-10 text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500">
-                            <option value="">All trips</option>
-                            @foreach (['pending' => 'Pending', 'accepted' => 'Accepted', 'en_route' => 'En route', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled'] as $value => $label)
+                            <option value="">All active trips</option>
+                            @foreach (['pending' => 'Pending', 'accepted' => 'Accepted', 'en_route' => 'En route'] as $value => $label)
                                 <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
                             @endforeach
                         </select>

@@ -17,6 +17,7 @@ class ScheduleController extends Controller
         $status = $request->query('status');
         
         $schedules = Schedule::with(['driver.user', 'truck'])
+        ->whereIn('status', ['pending', 'accepted', 'en_route'])
         ->when($q !== '', function ($query) use ($q) {
             $like = '%' . $q . '%';
             $query->where(function ($w) use ($q, $like) {
@@ -31,10 +32,10 @@ class ScheduleController extends Controller
             });
         })
         ->when(
-            in_array($status, array_keys(Schedule::NEXT), true),
+            in_array($status, ['pending', 'accepted', 'en_route'], true),
             fn ($query) => $query->where('status', $status)
         )
-        ->latest()
+        ->orderBy('departure_at')
         ->paginate(10)
         ->withQueryString();
         
@@ -65,11 +66,13 @@ class ScheduleController extends Controller
 
     public function edit(Schedule $schedule)
     {
+        abort_if(in_array($schedule->status, ['delivered', 'cancelled'], true), 403);
         return view('schedules.edit', $this->formData($schedule) + ['schedule' => $schedule]);
     }
 
     public function update(Request $request, Schedule $schedule)
     {
+        abort_if(in_array($schedule->status, ['delivered', 'cancelled'], true), 403);
         $schedule->update($this->validated($request));
 
         return redirect()->route('schedules.index')->with('status', 'Schedule updated.');
