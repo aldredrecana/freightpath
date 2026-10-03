@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class LoginRequest extends FormRequest
 {
@@ -30,6 +31,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'login_as' => ['required', 'in:dispatcher,driver'],
         ];
     }
 
@@ -47,6 +49,19 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
+            ]);
+        }
+        /** @var User $user */
+        $user = Auth::user();
+        $wantsDriver = $this->input('login_as') === 'driver';
+        
+        if ($user->hasRole('driver') !== $wantsDriver) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages([
+                'email' => $wantsDriver
+                   ? 'This is not a driver account. Choose the Dispatcher tab.'
+                   : 'This is a driver account. Choose the Driver tab.',
             ]);
         }
 
