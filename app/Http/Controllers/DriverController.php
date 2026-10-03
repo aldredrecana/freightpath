@@ -13,11 +13,31 @@ use Illuminate\Validation\Rule;
 
 class DriverController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $drivers = Driver::with('user')->latest()->paginate(10);
+        $q = trim((string) $request->query('q', ''));
+        $status = $request->query('status');
+        
+        $drivers = Driver::with('user')
+        ->when($q !== '', function ($query) use ($q) {
+            $like = '%' . $q . '%';
+            $query->where(function ($w) use ($like) {
+                $w->where('license_no', 'ilike', $like)
+                ->orWhere('contact_no', 'ilike', $like)
+                ->orWhereHas('user', fn ($u) => $u->where('name', 'ilike', $like));
+            });
+        })
+        ->when(
+            in_array($status, ['available', 'on_trip', 'off_duty'], true),
+            fn ($query) => $query->where('status', $status)
+            )
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('drivers.index', compact('drivers'));
+            $counts = Driver::selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+            
+            return view('drivers.index', compact('drivers', 'counts', 'q', 'status'));
     }
 
     public function create()
