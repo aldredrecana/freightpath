@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Models\Schedule;
 
 class DriverController extends Controller
 {
@@ -129,5 +130,12 @@ class DriverController extends Controller
         }
 
         return redirect()->route('drivers.index')->with('status', 'Driver deleted.');
+    }
+
+    public function show(Driver $driver)
+    {
+        $driver->load('user');
+        $trips = Schedule::with('truck')->where('driver_id', $driver->id)->latest()->take(5)->get();
+        return view('drivers.show', compact('driver', 'trips'));
     }
 }

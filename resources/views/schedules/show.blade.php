@@ -1,14 +1,27 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Delivery #{{ $schedule->id }}</h2>
-            <a href="{{ auth()->user()->hasRole('driver') ? route('schedules.mine') : route('schedules.index') }}" class="text-sm text-gray-600 underline">Back</a>
+<x-slot name="header">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Delivery {{ $schedule->reference }}</h2>
+        <div class="flex items-center gap-4 text-sm">
+            <a href="{{ auth()->user()->hasRole('driver') ? route('schedules.mine') : route('schedules.index') }}" class="text-gray-600 underline">Back</a>
+            @if (! auth()->user()->hasRole('driver'))
+                <a href="{{ route('schedules.edit', $schedule) }}" class="text-blue-600 underline">Edit</a>
+                <form method="POST" action="{{ route('schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule?')">
+                    @csrf
+                    @method('DELETE')
+                    <button class="text-red-600 underline">Delete</button>
+                </form>
+            @endif
         </div>
-    </x-slot>
+    </div>
+</x-slot>
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @if (session('status'))
                 <div class="p-3 bg-green-100 text-green-800 rounded">{{ session('status') }}</div>
+            @endif
+
+            @if ($errors->has('delete'))
+                <div class="p-3 bg-red-100 text-red-800 rounded">{{ $errors->first('delete') }}</div>
             @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

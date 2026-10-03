@@ -1,60 +1,106 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Schedules</h2>
-            <a href="{{ route('schedules.create') }}" class="px-4 py-2 bg-gray-800 text-white text-xs uppercase rounded-md">New Schedule</a>
-        </div>
-    </x-slot>
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-10">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+            <p class="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Workspace <span class="mx-2">/</span> <span class="text-gray-500">Schedules</span>
+            </p>
+
+            <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h1 class="text-4xl font-bold tracking-tight text-[#12263F]">Trip schedules</h1>
+                    <p class="mt-2 text-gray-500">Plan the day ahead and keep your fleet moving.</p>
+                </div>
+                <a href="{{ route('schedules.create') }}"
+                   class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Assign Trip
+                </a>
+            </div>
+
             @if (session('status'))
-                <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">{{ session('status') }}</div>
+                <div class="mt-6 rounded-lg bg-green-100 p-3 text-sm text-green-800">{{ session('status') }}</div>
             @endif
             @if ($errors->any())
-                <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">{{ $errors->first() }}</div>
+                <div class="mt-6 rounded-lg bg-red-100 p-3 text-sm text-red-800">{{ $errors->first() }}</div>
             @endif
 
-            <div class="bg-white shadow-sm sm:rounded-lg overflow-x-auto">
-                <table class="min-w-full text-sm text-left">
-                    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
-                        <tr>
-                            <th class="px-4 py-3">Ref</th>
-                            <th class="px-4 py-3">Driver</th>
-                            <th class="px-4 py-3">Truck</th>
-                            <th class="px-4 py-3">Route</th>
-                            <th class="px-4 py-3">Departure</th>
-                            <th class="px-4 py-3">Expected arrival</th>
-                            <th class="px-4 py-3">Status</th>
-                            <th class="px-4 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($schedules as $schedule)
-                            <tr class="border-t">
-                                <td class="px-4 py-3">#{{ $schedule->id }}</td>
-                                <td class="px-4 py-3">{{ $schedule->driver->user->name }}</td>
-                                <td class="px-4 py-3">{{ $schedule->truck->plate_no }}</td>
-                                <td class="px-4 py-3">{{ $schedule->origin_address }} &rarr; {{ $schedule->destination_address }}</td>
-                                <td class="px-4 py-3">{{ $schedule->departure_at->format('M d, Y g:i A') }}</td>
-                                <td class="px-4 py-3">{{ $schedule->expected_arrival_at->format('M d, Y g:i A') }}</td>
-                                <td class="px-4 py-3">{{ ucfirst(str_replace('_', ' ', $schedule->status)) }}</td>
-                                <td class="px-4 py-3 flex gap-3">
-                                    <a href="{{ route('schedules.show', $schedule) }}" class="text-gray-700 underline">View</a>
-                                    <a href="{{ route('schedules.edit', $schedule) }}" class="text-indigo-600 underline">Edit</a>
-                                    <form method="POST" action="{{ route('schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="text-red-600 underline">Delete</button>
-                                    </form>
-                                </td>
+            <div class="mt-8 rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <form method="GET" action="{{ route('schedules.index') }}" class="flex flex-wrap items-center justify-between gap-4 p-5">
+                    <div class="relative w-full max-w-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                        <input type="text" name="q" value="{{ $q }}" placeholder="Search trips, drivers, or destinations..."
+                               class="w-full rounded-lg border border-gray-200 py-3 pl-11 pr-4 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-center gap-4">
+                        @if ($q !== '' || $status)
+                            <a href="{{ route('schedules.index') }}" class="text-sm text-gray-500 underline">Clear</a>
+                        @endif
+                        <select name="status" onchange="this.form.submit()"
+                                class="rounded-lg border border-gray-200 py-3 pl-4 pr-10 text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">All trips</option>
+                            @foreach (['pending' => 'Pending', 'accepted' => 'Accepted', 'en_route' => 'En route', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled'] as $value => $label)
+                                <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto border-t border-gray-100">
+                    <table class="min-w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                <th class="px-6 py-4">Trip ID</th>
+                                <th class="px-6 py-4">Driver</th>
+                                <th class="px-6 py-4">Origin</th>
+                                <th class="px-6 py-4">Destination</th>
+                                <th class="px-6 py-4">Scheduled time</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4"><span class="sr-only">Open</span></th>
                             </tr>
-                        @empty
-                            <tr><td colspan="8" class="px-4 py-6 text-center text-gray-500">No schedules yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-sm">
+                            @forelse ($schedules as $schedule)
+                                <tr class="cursor-pointer hover:bg-gray-50/60" onclick="window.location='{{ route('schedules.show', $schedule) }}'">
+                                    <td class="px-6 py-5 font-medium text-[#12263F]">{{ $schedule->reference }}</td>
+                                    <td class="px-6 py-5">
+                                        <div class="flex items-center gap-3">
+                                            <x-avatar :name="$schedule->driver->user->name" :seed="$schedule->driver_id" size="h-10 w-10 text-xs" />
+                                            <div>
+                                                <div class="font-medium text-[#12263F]">{{ $schedule->driver->user->name }}</div>
+                                                <div class="text-xs text-gray-400">{{ $schedule->truck->plate_no }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-5 text-gray-700">{{ $schedule->origin_address }}</td>
+                                    <td class="px-6 py-5 text-gray-700">
+                                        <div class="flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>
+                                            {{ $schedule->destination_address }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-5 text-gray-700">
+                                        {{ $schedule->departure_at->format('g:i A') }}
+                                        <div class="text-xs text-gray-400">{{ $schedule->departure_at->format('M d, Y') }}</div>
+                                    </td>
+                                    <td class="px-6 py-5"><x-status-pill :status="$schedule->status" /></td>
+                                    <td class="px-6 py-5 text-right">
+                                        <a href="{{ route('schedules.show', $schedule) }}" class="inline-flex text-gray-400 hover:text-gray-700" aria-label="Open trip {{ $schedule->reference }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="px-6 py-10 text-center text-gray-500">No trips found.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                @if ($schedules->hasPages())
+                    <div class="border-t border-gray-100 px-6 py-4">{{ $schedules->links() }}</div>
+                @endif
             </div>
-            <div class="mt-4">{{ $schedules->links() }}</div>
         </div>
     </div>
 </x-app-layout>

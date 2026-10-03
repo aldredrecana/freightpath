@@ -66,67 +66,43 @@
                     </div>
                 </form>
 
-                <div class="overflow-x-auto border-t border-gray-100">
-                    <table class="min-w-full text-left">
-                        <thead>
-                            <tr class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                <th class="px-6 py-4">Driver</th>
-                                <th class="px-6 py-4">License number</th>
-                                <th class="px-6 py-4">Phone number</th>
-                                <th class="px-6 py-4">Status</th>
-                                @if (auth()->user()->hasRole('admin'))
-                                    <th class="px-6 py-4 text-right">Actions</th>
-                                @endif
+               <div class="overflow-x-auto border-t border-gray-100">
+                <table class="min-w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="px-6 py-4">Driver</th>
+                            <th class="px-6 py-4">License number</th>
+                            <th class="px-6 py-4">Phone number</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4"><span class="sr-only">Open</span></th>
+                        </tr>
+                    </thead>
+                    
+                    <tbody class="divide-y divide-gray-100 text-sm">
+                        @forelse ($drivers as $driver)
+                        <tr class="cursor-pointer hover:bg-gray-50/60" onclick="window.location='{{ route('drivers.show', $driver) }}'">
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-3">
+                                    <x-avatar :name="$driver->user->name" :seed="$driver->id" />
+                                        <span class="font-medium text-[#12263F]">{{ $driver->user->name }}</span>
+                                    </div>
+                            </td>
+                            
+                            <td class="px-6 py-5 text-gray-700">
+                                {{ $driver->license_no }}
+                                <div class="text-xs text-gray-400">Expires {{ $driver->license_expiry->format('M d, Y') }}</div>
+                            </td>
+                            <td class="px-6 py-5 text-gray-700">{{ $driver->contact_no }}</td>
+                            <td class="px-6 py-5"><x-status-pill :status="$driver->status" /></td>
+                                <td class="px-6 py-5 text-right">
+                                    <a href="{{ route('drivers.show', $driver) }}" class="inline-flex text-gray-400 hover:text-gray-700" aria-label="Open {{ $driver->user->name }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                                    </a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 text-sm">
-                            @forelse ($drivers as $driver)
-                                @php
-                                    $initials = collect(preg_split('/\s+/', trim($driver->user->name)))
-                                        ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
-                                        ->take(2)
-                                        ->implode('');
-                                    $avatars = ['bg-blue-100 text-blue-700', 'bg-violet-100 text-violet-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700'];
-                                    $pill = [
-                                        'available' => ['bg-emerald-50 text-emerald-700', 'bg-emerald-500', 'Available'],
-                                        'on_trip'   => ['bg-blue-50 text-blue-700', 'bg-blue-500', 'On trip'],
-                                        'off_duty'  => ['bg-gray-100 text-gray-600', 'bg-gray-400', 'Off duty'],
-                                    ][$driver->status] ?? ['bg-gray-100 text-gray-600', 'bg-gray-400', ucfirst($driver->status)];
-                                @endphp
-                                <tr class="hover:bg-gray-50/60">
-                                    <td class="px-6 py-5">
-                                        <div class="flex items-center gap-3">
-                                            <span class="flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold {{ $avatars[$driver->id % 4] }}">{{ $initials }}</span>
-                                            <span class="font-medium text-[#12263F]">{{ $driver->user->name }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-5 text-gray-700">
-                                        {{ $driver->license_no }}
-                                        <div class="text-xs text-gray-400">Expires {{ $driver->license_expiry->format('M d, Y') }}</div>
-                                    </td>
-                                    <td class="px-6 py-5 text-gray-700">{{ $driver->contact_no }}</td>
-                                    <td class="px-6 py-5">
-                                        <span class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium {{ $pill[0] }}">
-                                            <span class="h-1.5 w-1.5 rounded-full {{ $pill[1] }}"></span>{{ $pill[2] }}
-                                        </span>
-                                    </td>
-                                    @if (auth()->user()->hasRole('admin'))
-                                        <td class="px-6 py-5">
-                                            <div class="flex items-center justify-end gap-4">
-                                                <a href="{{ route('drivers.edit', $driver) }}" class="text-blue-600 hover:underline">Edit</a>
-                                                <form method="POST" action="{{ route('drivers.destroy', $driver) }}" onsubmit="return confirm('Delete this driver?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="text-red-600 hover:underline">Delete</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    @endif
-                                </tr>
+                            
                             @empty
-                                <tr>
-                                    <td colspan="5" class="px-6 py-10 text-center text-gray-500">No drivers found.</td>
-                                </tr>
+                            <tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">No drivers found.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

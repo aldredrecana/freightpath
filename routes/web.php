@@ -51,3 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/my-deliveries', [ScheduleController::class, 'mine'])
         ->middleware('role:driver')->name('schedules.mine');
 });
+
+Route::middleware(['auth', 'role:admin,dispatcher'])
+    ->get('/drivers/{driver}', [DriverController::class, 'show'])
+    ->whereNumber('driver')
+    ->name('drivers.show');

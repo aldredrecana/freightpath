@@ -51,4 +51,9 @@ class Schedule extends Model
             : $user->hasRole('driver');
         }));
     }
+
+    public function getReferenceAttribute(): string
+    {
+        return 'FP-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+    }
 }

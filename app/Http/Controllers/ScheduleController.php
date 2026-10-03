@@ -11,11 +11,34 @@ use Illuminate\Validation\Rule;
 
 class ScheduleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $schedules = Schedule::with(['driver.user', 'truck'])->latest()->paginate(10);
-
-        return view('schedules.index', compact('schedules'));
+        $q = trim((string) $request->query('q', ''));
+        $status = $request->query('status');
+        
+        $schedules = Schedule::with(['driver.user', 'truck'])
+        ->when($q !== '', function ($query) use ($q) {
+            $like = '%' . $q . '%';
+            $query->where(function ($w) use ($q, $like) {
+                $w->where('origin_address', 'ilike', $like)
+                ->orWhere('destination_address', 'ilike', $like)
+                ->orWhereHas('truck', fn ($t) => $t->where('plate_no', 'ilike', $like))
+                ->orWhereHas('driver.user', fn ($u) => $u->where('name', 'ilike', $like));
+                
+                if (preg_match('/^(fp-?)?(\d+)$/i', $q, $m)) {
+                    $w->orWhere('id', (int) $m[2]);
+                }
+            });
+        })
+        ->when(
+            in_array($status, array_keys(Schedule::NEXT), true),
+            fn ($query) => $query->where('status', $status)
+        )
+        ->latest()
+        ->paginate(10)
+        ->withQueryString();
+        
+        return view('schedules.index', compact('schedules', 'q', 'status'));
     }
 
     public function create()
