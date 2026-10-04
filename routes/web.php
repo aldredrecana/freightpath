@@ -41,11 +41,17 @@ Route::middleware(['auth', 'role:admin,dispatcher'])
 
 Route::middleware(['auth', 'role:admin,dispatcher'])->group(function () {
     Route::resource('schedules', ScheduleController::class)->except(['show']);
+    Route::post('/schedules/{schedule}/reassign', [ScheduleController::class, 'reassign'])
+    ->whereNumber('schedule')->name('schedules.reassign');
 });
 
 Route::middleware('auth')->group(function () {
     Route::get('/schedules/{schedule}', [ScheduleController::class, 'show'])
         ->whereNumber('schedule')->name('schedules.show');
+        
+    Route::post('/schedules/{schedule}/decline', [ScheduleController::class, 'decline'])
+    ->middleware('role:driver')->whereNumber('schedule')->name('schedules.decline');
+
     Route::post('/schedules/{schedule}/status', [ScheduleController::class, 'updateStatus'])
         ->whereNumber('schedule')->name('schedules.status');
 

@@ -42,6 +42,18 @@
                 <div class="md:col-span-2"><div class="text-xs uppercase tracking-wider text-gray-400">Address</div><div class="mt-1 text-gray-800">{{ $driver->address }}</div></div>
             </div>
 
+            <div class="mt-6 grid grid-cols-2 gap-4 text-sm">
+                <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div class="text-xs uppercase tracking-wider text-gray-400">Trips declined</div>
+                    <div class="mt-1 text-2xl font-bold text-[#12263F]">{{ $declineCount }}</div>
+                </div>
+                
+                <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div class="text-xs uppercase tracking-wider text-gray-400">Late declines (within {{ config('freightpath.late_window_hours') }} h of departure)</div>
+                    <div class="mt-1 text-2xl font-bold text-[#12263F]">{{ $lateDeclineCount }}</div>
+                </div>
+            </div>
+
             <div class="mt-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <h2 class="px-6 pt-6 text-lg font-semibold text-[#12263F]">Recent trips</h2>
                 <div class="mt-3 divide-y divide-gray-100 text-sm">

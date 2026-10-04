@@ -1,30 +1,43 @@
-<x-slot name="header">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Delivery {{ $schedule->reference }}</h2>
-        <div class="flex items-center gap-4 text-sm">
-           href="{{ auth()->user()->hasRole('driver') ? route('schedules.mine') : (in_array($schedule->status, ['delivered', 'cancelled'], true) ? route('transactions.index', ['trip' => $schedule->id]) : route('schedules.index')) }}"
-            @if (! auth()->user()->hasRole('driver'))
-                @unless (in_array($schedule->status, ['delivered', 'cancelled'], true))
-                     <a href="{{ route('schedules.edit', $schedule) }}" class="text-blue-600 underline">Edit</a>
-                @endunless
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Delivery {{ $schedule->reference }}</h2>
+            <div class="flex items-center gap-4 text-sm">
+                <a href="{{ auth()->user()->hasRole('driver') ? route('schedules.mine') : (in_array($schedule->status, ['delivered', 'cancelled'], true) ? route('transactions.index', ['trip' => $schedule->id]) : route('schedules.index')) }}" class="text-gray-600 underline">Back</a>
 
-                <form method="POST" action="{{ route('schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule?')">
-                    @csrf
-                    @method('DELETE')
-                    <button class="text-red-600 underline">Delete</button>
-                </form>
-            @endif
+                @if (! auth()->user()->hasRole('driver'))
+                    @unless (in_array($schedule->status, ['delivered', 'cancelled'], true))
+                        <a href="{{ route('schedules.edit', $schedule) }}" class="text-blue-600 underline">Edit</a>
+                    @endunless
+
+                    <form method="POST" action="{{ route('schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule?')">
+                        @csrf
+                        @method('DELETE')
+                        <button class="text-red-600 underline">Delete</button>
+                    </form>
+                @endif
+            </div>
         </div>
-    </div>
-</x-slot>
+    </x-slot>
+
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
             @if (session('status'))
                 <div class="p-3 bg-green-100 text-green-800 rounded">{{ session('status') }}</div>
             @endif
 
             @if ($errors->has('delete'))
                 <div class="p-3 bg-red-100 text-red-800 rounded">{{ $errors->first('delete') }}</div>
+            @endif
+
+            @if ($schedule->urgency)
+                <div class="p-3 rounded {{ $schedule->urgency === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800' }}">
+                    <strong class="uppercase">{{ $schedule->urgency }}</strong>: departure {{ $schedule->departure_at->diffForHumans() }}
+                    @if ($schedule->awaiting_since)
+                        &middot; awaiting driver response for {{ $schedule->awaiting_since->diffForHumans(null, true) }}
+                    @endif
+                </div>
             @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -40,24 +53,86 @@
             </div>
 
             @if (count($nextStatuses))
-            <form method="POST" action="{{ route('schedules.status', $schedule) }}" class="bg-white shadow-sm sm:rounded-lg p-6">
-                @csrf
-                <h3 class="font-semibold text-gray-800 mb-4">Update delivery status</h3>
-                <x-input-label for="remarks" value="Remarks (optional)" />
-                <x-text-input id="remarks" name="remarks" class="block mt-1 w-full" :value="old('remarks')" />
-                <x-input-error :messages="$errors->get('remarks')" class="mt-2" />
-                <x-input-error :messages="$errors->get('status')" class="mt-2" />
-                
-                <div class="mt-4 flex gap-3">
-                    @foreach ($nextStatuses as $s)
-                     <button type="submit" name="status" value="{{ $s }}"
-                       class="px-4 py-2 rounded-md text-xs uppercase text-white {{ $s === 'cancelled' ? 'bg-red-600' : 'bg-gray-800' }}">
-                       {{ ['accepted' => 'Accept Trip', 'en_route' => 'Depart / En Route', 'delivered' => 'Mark Delivered', 'cancelled' => 'Cancel Trip'][$s] }}
-                </button>
-            @endforeach
-        </div>
-    </form>
-@endif
+                <form method="POST" action="{{ route('schedules.status', $schedule) }}" class="bg-white shadow-sm sm:rounded-lg p-6">
+                    @csrf
+                    <h3 class="font-semibold text-gray-800 mb-4">Update delivery status</h3>
+                    <x-input-label for="remarks" value="Remarks (optional)" />
+                    <x-text-input id="remarks" name="remarks" class="block mt-1 w-full" :value="old('remarks')" />
+                    <x-input-error :messages="$errors->get('remarks')" class="mt-2" />
+                    <x-input-error :messages="$errors->get('status')" class="mt-2" />
+
+                    <div class="mt-4 flex gap-3">
+                        @foreach ($nextStatuses as $s)
+                            <button type="submit" name="status" value="{{ $s }}"
+                                class="px-4 py-2 rounded-md text-xs uppercase text-white {{ $s === 'cancelled' ? 'bg-red-600' : 'bg-gray-800' }}">
+                                {{ ['accepted' => 'Accept Trip', 'en_route' => 'Depart / En Route', 'delivered' => 'Mark Delivered', 'cancelled' => 'Cancel Trip'][$s] }}
+                            </button>
+                        @endforeach
+                    </div>
+                </form>
+            @endif
+
+            @if (auth()->user()->hasRole('driver') && in_array($schedule->status, ['pending', 'accepted'], true))
+                <form method="POST" action="{{ route('schedules.decline', $schedule) }}" class="bg-white shadow-sm sm:rounded-lg p-6"
+                      onsubmit="return confirm('Decline this trip? The dispatcher will be asked to assign another driver.')">
+                    @csrf
+                    <h3 class="font-semibold text-gray-800">Can't take this trip?</h3>
+                    <p class="mb-4 mt-1 text-sm text-gray-500">This takes effect immediately so a replacement can be found quickly.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <x-input-label for="reason" value="Reason" />
+                            <select id="reason" name="reason" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
+                                <option value="">Select a reason</option>
+                                @foreach (\App\Models\Schedule::DECLINE_REASONS as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('reason') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('reason')" class="mt-2" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <x-input-label for="details" value="Details (required for Other)" />
+                            <x-text-input id="details" name="details" class="block mt-1 w-full" :value="old('details')" />
+                            <x-input-error :messages="$errors->get('details')" class="mt-2" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button class="px-4 py-2 rounded-md text-xs uppercase text-white bg-red-600">Can't take this trip</button>
+                    </div>
+                </form>
+            @endif
+
+            @if (! auth()->user()->hasRole('driver') && in_array($schedule->status, ['pending', 'accepted', 'needs_reassignment'], true))
+                <form method="POST" action="{{ route('schedules.reassign', $schedule) }}" class="bg-white shadow-sm sm:rounded-lg p-6">
+                    @csrf
+                    <h3 class="font-semibold text-gray-800">{{ $schedule->status === 'needs_reassignment' ? 'Find a replacement driver' : 'Reassign driver' }}</h3>
+                    <p class="mb-4 mt-1 text-sm text-gray-500">Only available drivers are listed. Call the driver first. They must still accept the trip.</p>
+
+                    @if ($candidates->isEmpty())
+                        <p class="text-sm text-red-700">No available drivers right now. You can postpone the trip (Edit) or cancel it.</p>
+                    @else
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <x-input-label for="driver_id" value="New driver" />
+                                <select id="driver_id" name="driver_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
+                                    <option value="">Select a driver</option>
+                                    @foreach ($candidates as $c)
+                                        <option value="{{ $c->id }}">
+                                            {{ $c->user->name }} &middot; {{ $c->contact_no }} &middot;
+                                            {{ isset($lastDone[$c->id]) ? 'finished a trip ' . \Illuminate\Support\Carbon::parse($lastDone[$c->id])->diffForHumans() : 'no finished trips yet' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('driver_id')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="note" value="Note (optional)" />
+                                <x-text-input id="note" name="note" class="block mt-1 w-full" />
+                            </div>
+                        </div>
+                        <div class="mt-4"><x-primary-button>Reassign</x-primary-button></div>
+                    @endif
+                </form>
+            @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <h3 class="font-semibold text-gray-800 mb-4">Delivery timeline</h3>
@@ -67,6 +142,9 @@
                             <span class="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full {{ $loop->first ? 'bg-indigo-600' : 'bg-gray-400' }}"></span>
                             <p class="font-semibold text-sm {{ $loop->first ? 'text-indigo-700' : 'text-gray-800' }}">
                                 {{ ucfirst(str_replace('_', ' ', $log->status)) }}
+                                @if ($log->is_late)
+                                    <span class="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Late</span>
+                                @endif
                             </p>
                             <p class="text-xs text-gray-500">{{ $log->logged_at->format('M d, Y g:i A') }} &middot; {{ $log->loggedBy->name }}</p>
                             @if ($log->remarks)
@@ -78,6 +156,7 @@
                     @endforelse
                 </ol>
             </div>
+
         </div>
     </div>
 </x-app-layout>

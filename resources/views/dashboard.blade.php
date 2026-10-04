@@ -45,6 +45,18 @@
 
             @else
 
+            @if (($alerts['reassign'] ?? 0) > 0 || ($alerts['urgent'] ?? 0) > 0)
+            <a href="{{ route('schedules.index') }}" class="block rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 hover:bg-red-100">
+                @if ($alerts['reassign'] > 0)
+                <strong>{{ $alerts['reassign'] }}</strong> {{ \Illuminate\Support\Str::plural('trip', $alerts['reassign']) }} need a new driver.
+                @endif
+                @if ($alerts['urgent'] > 0)
+                <strong>{{ $alerts['urgent'] }}</strong> urgent or overdue.
+                @endif
+                View schedules &rarr;
+            </a>
+            @endif
+
                 @php
                     $groups = [
                         'Drivers' => [

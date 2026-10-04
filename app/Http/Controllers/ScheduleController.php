@@ -8,6 +8,7 @@ use App\Models\Truck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\User;
 
 class ScheduleController extends Controller
 {
@@ -17,7 +18,7 @@ class ScheduleController extends Controller
         $status = $request->query('status');
         
         $schedules = Schedule::with(['driver.user', 'truck'])
-        ->whereIn('status', ['pending', 'accepted', 'en_route'])
+        ->whereIn('status', Schedule::ACTIVE)
         ->when($q !== '', function ($query) use ($q) {
             $like = '%' . $q . '%';
             $query->where(function ($w) use ($q, $like) {
@@ -32,9 +33,10 @@ class ScheduleController extends Controller
             });
         })
         ->when(
-            in_array($status, ['pending', 'accepted', 'en_route'], true),
+            in_array($status, Schedule::ACTIVE, true),
             fn ($query) => $query->where('status', $status)
         )
+        ->orderByRaw("CASE WHEN status = 'needs_reassignment' THEN 0 ELSE 1 END")
         ->orderBy('departure_at')
         ->paginate(10)
         ->withQueryString();
@@ -51,6 +53,7 @@ class ScheduleController extends Controller
     {
         $data = $this->validated($request);
         $data['status'] = 'pending';
+        $data['assigned_at'] = now();
         DB::transaction(function () use ($data, $request) {
             $schedule = Schedule::create($data);
             $schedule->statusLogs()->create([
@@ -73,9 +76,25 @@ class ScheduleController extends Controller
     public function update(Request $request, Schedule $schedule)
     {
         abort_if(in_array($schedule->status, ['delivered', 'cancelled'], true), 403);
-        $schedule->update($this->validated($request));
-
-        return redirect()->route('schedules.index')->with('status', 'Schedule updated.');
+        $data = $this->validated($request);
+        $newDriverId = (int) $data['driver_id'];
+        
+        unset($data['driver_id']);
+        
+        $driverChanged = $newDriverId !== (int) $schedule->driver_id;
+        
+        if ($driverChanged && $schedule->status === 'en_route') {
+            return back()->withInput()->withErrors(['driver_id' => 'The driver cannot be changed while the trip is en route.']);
+        }
+        
+        DB::transaction(function () use ($schedule, $data, $newDriverId, $driverChanged, $request) {
+            $schedule->update($data);
+            
+            if ($driverChanged) {
+                $this->assignDriver($schedule, $newDriverId, $request->user(), null);
+                }
+            });
+            return redirect()->route('schedules.index')->with('status', 'Schedule updated.');
     }
 
     public function destroy(Schedule $schedule)
@@ -92,10 +111,25 @@ class ScheduleController extends Controller
     public function show(Request $request, Schedule $schedule)
     {
         abort_unless($this->canAccess($request, $schedule), 403);
+        
         $schedule->load(['driver.user', 'truck', 'statusLogs.loggedBy']);
         $nextStatuses = $schedule->allowedNext($request->user());
         
-        return view('schedules.show', compact('schedule', 'nextStatuses'));
+        $candidates = collect();
+        $lastDone = collect();
+        
+        if (! $request->user()->hasRole('driver')
+            && in_array($schedule->status, ['pending', 'accepted', 'needs_reassignment'], true)) {
+        $candidates = $this->candidatesFor($schedule);
+        $lastDone = Schedule::where('status', 'delivered')
+            ->whereIn('driver_id', $candidates->pluck('id'))
+            ->selectRaw('driver_id, max(updated_at) as last_done')
+            ->groupBy('driver_id')
+            ->pluck('last_done', 'driver_id');
+            
+        }
+        
+        return view('schedules.show', compact('schedule', 'nextStatuses', 'candidates', 'lastDone'));
     }
 
     public function updateStatus(Request $request, Schedule $schedule)
@@ -150,6 +184,86 @@ class ScheduleController extends Controller
         || $schedule->driver->user_id === $user->id;
     }
     
+
+    public function decline(Request $request, Schedule $schedule)
+{
+    $user = $request->user();
+
+    abort_unless($schedule->driver->user_id === $user->id, 403);
+    abort_unless(in_array($schedule->status, ['pending', 'accepted'], true), 403);
+
+    $data = $request->validate([
+        'reason'  => ['required', Rule::in(array_keys(Schedule::DECLINE_REASONS))],
+        'details' => ['required_if:reason,other', 'nullable', 'string', 'max:300'],
+    ]);
+
+    $isLate = $schedule->departure_at->lte(now()->addHours((int) config('freightpath.late_window_hours', 3)));
+    $remarks = Schedule::DECLINE_REASONS[$data['reason']]
+        . (filled($data['details'] ?? null) ? ': ' . $data['details'] : '');
+
+    DB::transaction(function () use ($schedule, $user, $remarks, $isLate) {
+        $schedule->update(['status' => 'needs_reassignment']);
+
+        $schedule->statusLogs()->create([
+            'logged_by' => $user->id,
+            'status'    => 'needs_reassignment',
+            'remarks'   => $remarks,
+            'is_late'   => $isLate,
+            'logged_at' => now(),
+        ]);
+    });
+
+    return back()->with('status', 'You declined this trip. The dispatcher will assign another driver.');
+}
+
+public function reassign(Request $request, Schedule $schedule)
+{
+    abort_unless(in_array($schedule->status, ['pending', 'accepted', 'needs_reassignment'], true), 403);
+
+    $data = $request->validate([
+        'driver_id' => ['required', Rule::in($this->candidatesFor($schedule)->pluck('id')->all())],
+        'note'      => ['nullable', 'string', 'max:300'],
+    ]);
+
+    DB::transaction(fn () => $this->assignDriver($schedule, (int) $data['driver_id'], $request->user(), $data['note'] ?? null));
+
+    return redirect()->route('schedules.show', $schedule)
+        ->with('status', 'Trip reassigned. The new driver must accept it.');
+}
+
+// Available drivers, excluding the current driver and anyone who already declined this trip.
+private function candidatesFor(Schedule $schedule)
+{
+    $declined = $schedule->statusLogs()->where('status', 'needs_reassignment')->pluck('logged_by');
+
+    return Driver::with('user')
+        ->where('status', 'available')
+        ->where('id', '!=', $schedule->driver_id)
+        ->whereNotIn('user_id', $declined)
+        ->get()
+        ->sortBy(fn ($driver) => $driver->user->name)
+        ->values();
+}
+
+// Moves the trip to a new driver, back to Pending, and logs it. Call inside a transaction.
+private function assignDriver(Schedule $schedule, int $newDriverId, User $by, ?string $note): void
+{
+    $oldName = Driver::with('user')->find($schedule->driver_id)?->user->name ?? 'previous driver';
+    $new = Driver::with('user')->findOrFail($newDriverId);
+
+    $schedule->update([
+        'driver_id'   => $new->id,
+        'status'      => 'pending',
+        'assigned_at' => now(),
+    ]);
+
+    $schedule->statusLogs()->create([
+        'logged_by' => $by->id,
+        'status'    => 'pending',
+        'remarks'   => "Reassigned from {$oldName} to {$new->user->name}." . ($note ? " {$note}" : ''),
+        'logged_at' => now(),
+    ]);
+}
     private function validated(Request $request): array
     {
         return $request->validate([

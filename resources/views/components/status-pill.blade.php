@@ -10,6 +10,7 @@
         'en_route'    => ['bg-blue-50 text-blue-700', 'bg-blue-500', 'En route'],
         'delivered'   => ['bg-emerald-50 text-emerald-700', 'bg-emerald-500', 'Delivered'],
         'cancelled'   => ['bg-red-50 text-red-700', 'bg-red-500', 'Cancelled'],
+        'needs_reassignment' => ['bg-red-50 text-red-700', 'bg-red-500', 'Needs reassignment'],
     ];
     [$cls, $dot, $label] = $map[$status] ?? ['bg-gray-100 text-gray-600', 'bg-gray-400', ucfirst(str_replace('_', ' ', $status))];
 @endphp

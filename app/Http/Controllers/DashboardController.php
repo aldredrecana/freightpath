@@ -52,12 +52,20 @@ class DashboardController extends Controller
 
         $recent = Schedule::with(['driver.user', 'truck'])->latest()->take(5)->get();
 
+        $window = (int) config('freightpath.late_window_hours', 3);
+        $alerts = [
+            'reassign' => Schedule::where('status', 'needs_reassignment')->count(),
+            'urgent'   => Schedule::whereIn('status', ['pending', 'needs_reassignment'])
+                 ->where('departure_at', '<=', now()->addHours($window))->count(),
+            ];
+
         return view('dashboard', [
             'mode'       => 'staff',
             'drivers'    => $drivers,
             'trucks'     => $trucks,
             'tripCounts' => $tripCounts,
             'recent'     => $recent,
+            'alerts' => $alerts,
         ]);
     }
 }

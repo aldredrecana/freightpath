@@ -39,7 +39,7 @@
                         <select name="status" onchange="this.form.submit()"
                                 class="rounded-lg border border-gray-200 py-3 pl-4 pr-10 text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500">
                             <option value="">All active trips</option>
-                            @foreach (['pending' => 'Pending', 'accepted' => 'Accepted', 'en_route' => 'En route'] as $value => $label)
+                              @foreach (['needs_reassignment' => 'Needs reassignment', 'pending' => 'Pending', 'accepted' => 'Accepted', 'en_route' => 'En route'] as $value => $label)
                                 <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
@@ -83,7 +83,19 @@
                                         {{ $schedule->departure_at->format('g:i A') }}
                                         <div class="text-xs text-gray-400">{{ $schedule->departure_at->format('M d, Y') }}</div>
                                     </td>
-                                    <td class="px-6 py-5"><x-status-pill :status="$schedule->status" /></td>
+                                    <td class="px-6 py-5">
+                                        
+                                        <x-status-pill :status="$schedule->status" />
+                                            @if ($schedule->urgency)
+                                            <span class="ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white {{ $schedule->urgency === 'overdue' ? 'bg-red-600' : 'bg-amber-500' }}">{{ $schedule->urgency }}</span>
+                                            @endif
+                                            
+                                            @if ($schedule->awaiting_since)
+                                            <div class="mt-1 text-xs {{ $schedule->awaiting_since->lt(now()->subMinutes((int) config('freightpath.response_window_minutes', 30))) ? 'text-red-600' : 'text-gray-400' }}">
+                                                Awaiting driver &middot; {{ $schedule->awaiting_since->diffForHumans(null, true) }}
+                                            </div>
+                                            @endif
+                                    </td>
                                     <td class="px-6 py-5 text-right">
                                         <a href="{{ route('schedules.show', $schedule) }}" class="inline-flex text-gray-400 hover:text-gray-700" aria-label="Open trip {{ $schedule->reference }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>

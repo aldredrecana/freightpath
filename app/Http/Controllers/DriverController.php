@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use App\Models\Schedule;
+use App\Models\DeliveryStatusLog;
 
 class DriverController extends Controller
 {
@@ -136,6 +137,11 @@ class DriverController extends Controller
     {
         $driver->load('user');
         $trips = Schedule::with('truck')->where('driver_id', $driver->id)->latest()->take(5)->get();
-        return view('drivers.show', compact('driver', 'trips'));
+        
+        $declines = DeliveryStatusLog::where('status', 'needs_reassignment')->where('logged_by', $driver->user_id);
+        $declineCount = (clone $declines)->count();
+        $lateDeclineCount = (clone $declines)->where('is_late', true)->count();
+        
+        return view('drivers.show', compact('driver', 'trips', 'declineCount', 'lateDeclineCount'));
     }
 }

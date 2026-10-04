@@ -72,6 +72,7 @@
                                 'en_route'  => 'En route',
                                 'delivered' => 'Delivered',
                                 'cancelled' => 'Trip cancelled',
+                                'needs_reassignment' => 'Driver declined',
                             ];
                             $defaults = [
                                 'pending'   => 'Assigned to ' . $name,
@@ -79,6 +80,7 @@
                                 'en_route'  => 'Departed from ' . $selected->origin_address,
                                 'delivered' => 'Delivered to ' . $selected->destination_address,
                                 'cancelled' => 'The trip was cancelled',
+                                'needs_reassignment' => 'The driver could not take the trip',
                             ];
                         @endphp
 
