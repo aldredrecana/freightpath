@@ -1,0 +1,1 @@
+<x-error-page code="500" title="Something went wrong on our side" message="Please try again in a moment. If it keeps happening, call your dispatcher." />

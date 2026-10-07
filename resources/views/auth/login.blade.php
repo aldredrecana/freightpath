@@ -84,13 +84,22 @@
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
 
-                <div>
+                <div x-data="{ show: false }">
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input id="password" name="password" type="password" required autocomplete="current-password"
+                    <div class="relative mt-2">
+                        <input id="password" name="password" :type="show ? 'text' : 'password'" type="password" required autocomplete="current-password"
                         placeholder="Enter your password"
-                        class="mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500">
+                        class="block w-full rounded-lg border border-gray-200 px-4 py-3 pr-20 text-base placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500">
+                        <button type="button" @click="show = ! show" x-text="show ? 'Hide' : 'Show'"
+                        class="absolute inset-y-0 right-0 px-4 text-sm font-semibold text-blue-700">Show</button>
+                    </div>
                     <x-input-error :messages="$errors->get('password')" class="mt-2" />
                 </div>
+                
+                <label class="flex items-center gap-3 text-base text-gray-700">
+                    <input type="checkbox" name="remember" checked class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    Keep me signed in on this device
+                </label>
 
                 <button type="submit"
                     class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">

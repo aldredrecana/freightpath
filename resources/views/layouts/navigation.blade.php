@@ -69,3 +69,20 @@
         </div>
     </div>
 </nav>
+
+@if (auth()->user()->hasRole('driver'))
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white lg:hidden">
+        <div class="grid grid-cols-2">
+            @foreach ([
+                ['Home', 'dashboard', 'dashboard', 'M3 12l9-9 9 9M5 10v10h14V10'],
+                ['My Trips', 'schedules.mine', 'schedules.*', 'M3 6h11v10H3zM14 10h4l3 3v3h-7z'],
+            ] as [$label, $route, $pattern, $icon])
+                <a href="{{ route($route) }}"
+                   class="flex flex-col items-center gap-1 py-3 text-base font-semibold {{ request()->routeIs($pattern) ? 'text-blue-700' : 'text-gray-600' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $icon }}"/></svg>
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+@endif

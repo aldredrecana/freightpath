@@ -1,0 +1,1 @@
+<x-error-page code="419" title="Your session ended" message="Please go back, refresh the page, and try again." />

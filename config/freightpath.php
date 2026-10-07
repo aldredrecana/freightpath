@@ -8,4 +8,6 @@ return [
     'response_window_minutes' => (int) env('FREIGHTPATH_RESPONSE_WINDOW_MINUTES', 30),
 
     'public_registration' => (bool) env('FREIGHTPATH_PUBLIC_REGISTRATION', false),
+
+    'dispatcher_phone' => env('FREIGHTPATH_DISPATCH_PHONE'),
 ];

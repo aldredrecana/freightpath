@@ -114,6 +114,10 @@ class ScheduleController extends Controller
         
         $schedule->load(['driver.user', 'truck', 'statusLogs.loggedBy']);
         $nextStatuses = $schedule->allowedNext($request->user());
+
+        if ($request->user()->hasRole('driver')) {
+            return view('schedules.driver-show', compact('schedule', 'nextStatuses'));
+        }
         
         $candidates = collect();
         $lastDone = collect();
@@ -165,13 +169,21 @@ class ScheduleController extends Controller
             }
         });
         
-        return back()->with('status', 'Delivery status updated.');
+        $messages = [
+            'accepted'  => 'Trip accepted. Thank you!',
+            'en_route'  => 'Trip started. Drive safe!',
+            'delivered' => 'Delivered. Thank you!',
+            'cancelled' => 'Trip cancelled.',
+        ];
+        
+        return back()->with('status', $messages[$data['status']] ?? 'Delivery status updated.');
     }
     public function mine(Request $request)
     {
         $schedules = Schedule::with('truck')
         ->whereHas('driver', fn ($q) => $q->where('user_id', $request->user()->id))
-        ->latest()
+        ->orderByRaw("CASE WHEN status IN ('delivered', 'cancelled', 'needs_reassignment') THEN 1 ELSE 0 END")
+        ->orderByDesc('departure_at')
         ->paginate(10);
         
         return view('schedules.mine', compact('schedules'));
