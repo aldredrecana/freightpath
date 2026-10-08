@@ -10,11 +10,7 @@
                         <a href="{{ route('schedules.edit', $schedule) }}" class="text-blue-600 underline">Edit</a>
                     @endunless
 
-                    <form method="POST" action="{{ route('schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule?')">
-                        @csrf
-                        @method('DELETE')
-                        <button class="text-red-600 underline">Delete</button>
-                    </form>
+                      <x-confirm-delete :action="route('schedules.destroy', $schedule)" title="Delete this trip?" message="Only pending trips can be deleted." />
                 @endif
             </div>
         </div>
@@ -23,9 +19,7 @@
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            @if (session('status'))
-                <div class="p-3 bg-green-100 text-green-800 rounded">{{ session('status') }}</div>
-            @endif
+           
 
             @if ($errors->has('delete'))
                 <div class="p-3 bg-red-100 text-red-800 rounded">{{ $errors->first('delete') }}</div>

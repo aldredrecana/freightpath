@@ -38,9 +38,7 @@
                 @endforeach
             </div>
 
-            @if (session('status'))
-                <div class="mt-6 rounded-lg bg-green-100 p-3 text-sm text-green-800">{{ session('status') }}</div>
-            @endif
+            
             @if ($errors->any())
                 <div class="mt-6 rounded-lg bg-red-100 p-3 text-sm text-red-800">{{ $errors->first() }}</div>
             @endif
@@ -90,7 +88,12 @@
                             
                             <td class="px-6 py-5 text-gray-700">
                                 {{ $driver->license_no }}
-                                <div class="text-xs text-gray-400">Expires {{ $driver->license_expiry->format('M d, Y') }}</div>
+                                  <div class="text-xs text-gray-400">
+                                    Expires {{ $driver->license_expiry->format('M d, Y') }}
+                                    @if ($driver->license_alert)
+                                    <span class="ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white {{ $driver->license_alert === 'expired' ? 'bg-red-600' : 'bg-amber-500' }}">{{ $driver->license_alert === 'expired' ? 'Expired' : 'Expiring' }}</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-5 text-gray-700">{{ $driver->contact_no }}</td>
                             <td class="px-6 py-5"><x-status-pill :status="$driver->status" /></td>

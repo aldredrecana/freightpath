@@ -14,4 +14,13 @@ class Driver extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // 'expired', 'expiring' (within 30 days), or null.
+    public function getLicenseAlertAttribute(): ?string
+    {
+        if ($this->license_expiry->copy()->endOfDay()->isPast()) {
+        return 'expired';
+        }
+        return $this->license_expiry->lte(now()->addDays(30)) ? 'expiring' : null;
+    }
 }

@@ -1,48 +1,20 @@
-@php $isEdit = isset($schedule); @endphp
+@php
+    $isEdit = isset($schedule);
+    $driverOptions = $drivers->mapWithKeys(fn ($d) => [$d->id => $d->user->name . ' (' . $d->license_no . ')'])->all();
+    $truckOptions = $trucks->mapWithKeys(fn ($t) => [$t->id => $t->plate_no . ' - ' . $t->model])->all();
+@endphp
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div>
-        <x-input-label for="driver_id" value="Driver" />
-        <select id="driver_id" name="driver_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
-            <option value="">Select a driver</option>
-            @foreach ($drivers as $driver)
-                <option value="{{ $driver->id }}" @selected((int) old('driver_id', $isEdit ? $schedule->driver_id : null) === $driver->id)>
-                    {{ $driver->user->name }} ({{ $driver->license_no }})
-                </option>
-            @endforeach
-        </select>
-        <x-input-error :messages="$errors->get('driver_id')" class="mt-2" />
-    </div>
-    <div>
-        <x-input-label for="truck_id" value="Truck" />
-        <select id="truck_id" name="truck_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
-            <option value="">Select a truck</option>
-            @foreach ($trucks as $truck)
-                <option value="{{ $truck->id }}" @selected((int) old('truck_id', $isEdit ? $schedule->truck_id : null) === $truck->id)>
-                    {{ $truck->plate_no }} - {{ $truck->model }}
-                </option>
-            @endforeach
-        </select>
-        <x-input-error :messages="$errors->get('truck_id')" class="mt-2" />
-    </div>
-    <div>
-        <x-input-label for="departure_at" value="Departure" />
-        <x-text-input id="departure_at" name="departure_at" type="datetime-local" class="block mt-1 w-full" :value="old('departure_at', $isEdit ? $schedule->departure_at->format('Y-m-d\TH:i') : '')" required />
-        <x-input-error :messages="$errors->get('departure_at')" class="mt-2" />
-    </div>
-    <div>
-        <x-input-label for="expected_arrival_at" value="Expected arrival" />
-        <x-text-input id="expected_arrival_at" name="expected_arrival_at" type="datetime-local" class="block mt-1 w-full" :value="old('expected_arrival_at', $isEdit ? $schedule->expected_arrival_at->format('Y-m-d\TH:i') : '')" required />
-        <x-input-error :messages="$errors->get('expected_arrival_at')" class="mt-2" />
-    </div>
-    <div class="md:col-span-2">
-        <x-input-label for="origin_address" value="Origin address" />
-        <textarea id="origin_address" name="origin_address" rows="2" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>{{ old('origin_address', $isEdit ? $schedule->origin_address : '') }}</textarea>
-        <x-input-error :messages="$errors->get('origin_address')" class="mt-2" />
-    </div>
-    <div class="md:col-span-2">
-        <x-input-label for="destination_address" value="Destination address" />
-        <textarea id="destination_address" name="destination_address" rows="2" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>{{ old('destination_address', $isEdit ? $schedule->destination_address : '') }}</textarea>
-        <x-input-error :messages="$errors->get('destination_address')" class="mt-2" />
-    </div>
+<div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+    <x-form-select name="driver_id" label="Driver" placeholder="Select a driver" :options="$driverOptions"
+        :value="$isEdit ? $schedule->driver_id : null" hint="Only available drivers are listed." />
+    <x-form-select name="truck_id" label="Truck" placeholder="Select a truck" :options="$truckOptions"
+        :value="$isEdit ? $schedule->truck_id : null" hint="Only available trucks are listed." />
+    <x-form-field name="departure_at" label="Departure" type="datetime-local"
+        :value="$isEdit ? $schedule->departure_at->format('Y-m-d\TH:i') : null" />
+    <x-form-field name="expected_arrival_at" label="Expected arrival" type="datetime-local"
+        :value="$isEdit ? $schedule->expected_arrival_at->format('Y-m-d\TH:i') : null" />
+    <x-form-textarea name="origin_address" label="Origin address" class="md:col-span-2" rows="2"
+        :value="$isEdit ? $schedule->origin_address : null" />
+    <x-form-textarea name="destination_address" label="Destination address" class="md:col-span-2" rows="2"
+        :value="$isEdit ? $schedule->destination_address : null" />
 </div>

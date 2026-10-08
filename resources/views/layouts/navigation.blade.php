@@ -86,3 +86,5 @@
         </div>
     </div>
 @endif
+
+<x-toast />

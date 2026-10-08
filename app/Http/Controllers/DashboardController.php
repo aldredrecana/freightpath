@@ -33,7 +33,7 @@ class DashboardController extends Controller
                     ->get()
                 : collect();
 
-            return view('dashboard', [
+            return view('dashboard-driver', [
                 'mode'     => 'driver',
                 'current'  => $current,
                 'upcoming' => $upcoming,
@@ -50,22 +50,26 @@ class DashboardController extends Controller
             'Completed' => $byStatus->get('delivered', 0),
         ];
 
-        $recent = Schedule::with(['driver.user', 'truck'])->latest()->take(5)->get();
-
         $window = (int) config('freightpath.late_window_hours', 3);
+
         $alerts = [
             'reassign' => Schedule::where('status', 'needs_reassignment')->count(),
             'urgent'   => Schedule::whereIn('status', ['pending', 'needs_reassignment'])
-                 ->where('departure_at', '<=', now()->addHours($window))->count(),
-            ];
+                            ->where('departure_at', '<=', now()->addHours($window))->count(),
+            'licenses' => Driver::whereDate('license_expiry', '<=', today()->addDays(30))->count(),
+        ];
 
-        return view('dashboard', [
-            'mode'       => 'staff',
-            'drivers'    => $drivers,
-            'trucks'     => $trucks,
-            'tripCounts' => $tripCounts,
-            'recent'     => $recent,
-            'alerts' => $alerts,
-        ]);
+        $today = Schedule::with(['driver.user', 'truck'])
+            ->whereDate('departure_at', today())
+            ->orderBy('departure_at')
+            ->get();
+
+        $expiring = Driver::with('user')
+            ->whereDate('license_expiry', '<=', today()->addDays(30))
+            ->orderBy('license_expiry')
+            ->take(5)
+            ->get();
+
+        return view('dashboard', compact('drivers', 'trucks', 'tripCounts', 'alerts', 'today', 'expiring'));
     }
 }

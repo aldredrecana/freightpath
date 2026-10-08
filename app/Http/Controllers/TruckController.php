@@ -6,18 +6,38 @@ use App\Models\Truck;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Models\Schedule;
 
 class TruckController extends Controller
 {
     private const STATUSES = ['available', 'on_trip', 'maintenance'];
 
-    public function index()
+    public function index(Request $request)
     {
-        $trucks = Truck::latest()->paginate(10);
+        $q = trim((string) $request->query('q', ''));
+        $status = $request->query('status');
+        
+        $trucks = Truck::query()
+        ->when($q !== '', function ($query) use ($q) {
+            $like = '%' . $q . '%';
+            $query->where(fn ($w) => $w->where('plate_no', 'ilike', $like)->orWhere('model', 'ilike', $like));
+        })
+        ->when(in_array($status, self::STATUSES, true), fn ($query) => $query->where('status', $status))
+        ->latest()
+        ->paginate(10)
+        ->withQueryString();
 
-        return view('trucks.index', compact('trucks'));
-    }
+    $counts = Truck::selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
 
+    return view('trucks.index', compact('trucks', 'counts', 'q', 'status'));
+}
+
+public function show(Truck $truck)
+{
+    $trips = Schedule::with('driver.user')->where('truck_id', $truck->id)->latest()->take(5)->get();
+
+    return view('trucks.show', compact('truck', 'trips'));
+}
     public function create()
     {
         return view('trucks.create');

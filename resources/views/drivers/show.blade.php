@@ -25,11 +25,8 @@
                     <a href="{{ route('drivers.index') }}" class="text-gray-600 underline">Back</a>
                     @if (auth()->user()->hasRole('admin'))
                         <a href="{{ route('drivers.edit', $driver) }}" class="rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700">Edit driver</a>
-                        <form method="POST" action="{{ route('drivers.destroy', $driver) }}" onsubmit="return confirm('Delete this driver?')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="font-medium text-red-600 hover:underline">Delete</button>
-                        </form>
+                          <x-confirm-delete :action="route('drivers.destroy', $driver)" title="Delete this driver?"
+                          :message="'The login and profile of ' . $driver->user->name . ' will be removed. This cannot be undone.'" />
                     @endif
                 </div>
             </div>
