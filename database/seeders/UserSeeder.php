@@ -16,12 +16,12 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@freightpath.test'],
+            ["email" => "admin@freightpath.test"],
             [
-                'name' => 'System Admin',
-                'password' => Hash::make('Admin12345'),
-                'role_id' => Role::where('name', 'admin')->value('id')
-            ]
+                "name" => "System Admin",
+                "password" => Hash::make("Admin12345"),
+                "role_id" => Role::where("name", "admin")->value("id"),
+            ],
         );
     }
 }
