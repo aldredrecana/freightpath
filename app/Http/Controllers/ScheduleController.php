@@ -112,15 +112,6 @@ class ScheduleController extends Controller
 
         $driverChanged = $newDriverId !== (int) $schedule->driver_id;
 
-        if ($driverChanged && $schedule->status === "en_route") {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    "driver_id" =>
-                        "The driver cannot be changed while the trip is en route.",
-                ]);
-        }
-
         DB::transaction(function () use (
             $schedule,
             $data,
@@ -210,6 +201,20 @@ class ScheduleController extends Controller
             "status" => ["required", Rule::in($allowed)],
             "remarks" => ["nullable", "string", "max:500"],
         ]);
+
+        if ($schedule->truck->status === "maintenance") {
+            return back()->withErrors([
+                "status" =>
+                    "This truck is in maintenance. Please tell the dispatcher.",
+            ]);
+        }
+
+        if ($schedule->driver->status === "off_duty") {
+            return back()->withErrors([
+                "status" =>
+                    "Your status is Off duty. Please tell the dispatcher.",
+            ]);
+        }
 
         if ($data["status"] === "en_route") {
             $busy = Schedule::where("status", "en_route")
@@ -384,7 +389,7 @@ class ScheduleController extends Controller
             ->pluck("driver_id");
 
         return Driver::with("user")
-            ->where("status", "available")
+            ->where("status", "!=", "off_duty")
             ->where("id", "!=", $schedule->driver_id)
             ->whereDate(
                 "license_expiry",
@@ -444,10 +449,10 @@ class ScheduleController extends Controller
         $errors = [];
 
         if (
-            $driver->status !== "available" &&
+            $driver->status === "off_duty" &&
             $driver->id !== $schedule?->driver_id
         ) {
-            $errors["driver_id"] = "This driver is not available.";
+            $errors["driver_id"] = "This driver is off duty.";
         } elseif (
             $driver->license_expiry->lt($departure->copy()->startOfDay())
         ) {
@@ -456,10 +461,10 @@ class ScheduleController extends Controller
         }
 
         if (
-            $truck->status !== "available" &&
+            $truck->status === "maintenance" &&
             $truck->id !== $schedule?->truck_id
         ) {
-            $errors["truck_id"] = "This truck is not available.";
+            $errors["truck_id"] = "This truck is in maintenance.";
         }
 
         if (!$schedule && $departure->isPast()) {
@@ -503,11 +508,12 @@ class ScheduleController extends Controller
     private function formData(?Schedule $schedule = null): array
     {
         $drivers = Driver::with("user")
-            ->where("status", "available")
+            ->where("status", "!=", "off_duty")
             ->when($schedule, fn($q) => $q->orWhere("id", $schedule->driver_id))
             ->get();
 
         $trucks = Truck::where("status", "available")
+            ->where("status", "!=", "maintenance")
             ->when($schedule, fn($q) => $q->orWhere("id", $schedule->truck_id))
             ->get();
 

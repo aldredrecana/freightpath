@@ -162,7 +162,7 @@ class DriverController extends Controller
         } catch (QueryException $e) {
             return back()->withErrors([
                 "delete" =>
-                    "This driver still has schedules, so it cannot be deleted. Set the status to inactive instead.",
+                    "This driver has trips or history and cannot be deleted. Set the status to Off duty instead.",
             ]);
         }
 

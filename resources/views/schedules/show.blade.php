@@ -117,8 +117,8 @@
                     <h3 class="font-semibold text-gray-800">
                         {{ $schedule->status === 'needs_reassignment' ? 'Find a replacement driver' : 'Reassign driver' }}
                     </h3>
-                    <p class="mb-4 mt-1 text-sm text-gray-500">Only available drivers are listed. Call the driver first.
-                        They must still accept the trip.</p>
+                    <p class="mb-4 mt-1 text-sm text-gray-500">Off-duty drivers and drivers with overlapping trips are not
+    listed. Call the driver first. They must still accept the trip.</p>
 
                     @if ($candidates->isEmpty())
                         <p class="text-sm text-red-700">No available drivers right now. You can postpone the trip (Edit)
