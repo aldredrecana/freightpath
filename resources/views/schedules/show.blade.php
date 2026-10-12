@@ -118,11 +118,11 @@
                         {{ $schedule->status === 'needs_reassignment' ? 'Find a replacement driver' : 'Reassign driver' }}
                     </h3>
                     <p class="mb-4 mt-1 text-sm text-gray-500">Off-duty drivers and drivers with overlapping trips are not
-    listed. Call the driver first. They must still accept the trip.</p>
+                        listed. Call the driver first. They must still accept the trip.</p>
 
                     @if ($candidates->isEmpty())
-                        <p class="text-sm text-red-700">No available drivers right now. You can postpone the trip (Edit)
-                            or cancel it.</p>
+                        <p class="text-sm text-red-700">No driver is free for this trip's time. You can postpone the trip
+                             (Edit) or cancel it.</p>
                     @else
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="md:col-span-2">
